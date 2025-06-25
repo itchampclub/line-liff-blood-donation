@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIFF Form</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for the number pad buttons */
+        .keypad-button {
+            @apply p-3 text-center border rounded-md hover:bg-gray-100 active:bg-gray-200 transition-colors;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8 font-['Inter']">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6 space-y-8 transition-all duration-300 hover:shadow-lg">
+        <div class="text-center">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">ลงทะเบียน</h2>
+        </div>
+        <form id="liffForm" class="space-y-6">
+            <div class="space-y-4">
+                <!-- Input field for donor number (ระบุหมายเลขผู้บริจาค) -->
+                <div>
+                    <label for="donorNumber" class="block text-sm font-medium text-gray-700">ระบุหมายเลขผู้บริจาค</label>
+                    <div class="relative mt-1">
+                        <input type="text" id="donorNumber" name="donorNumber" required pattern="[0-9]{1,20}" maxlength="20" 
+                            placeholder="เช่น 12345678901234567890"
+                            title="กรุณากรอกตัวเลข 0-9 ไม่เกิน 20 หลัก"
+                            oninput="handleNumberInput(this)"
+                            class="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-150 ease-in-out peer"
+                            readonly
+                        >
+                        <div class="hidden peer-invalid:block absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-red-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="hidden peer-valid:block absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="mt-2 grid grid-cols-3 gap-2">
+                        <button type="button" onclick="appendNumber('1')" class="keypad-button">1</button>
+                        <button type="button" onclick="appendNumber('2')" class="keypad-button">2</button>
+                        <button type="button" onclick="appendNumber('3')" class="keypad-button">3</button>
+                        <button type="button" onclick="appendNumber('4')" class="keypad-button">4</button>
+                        <button type="button" onclick="appendNumber('5')" class="keypad-button">5</button>
+                        <button type="button" onclick="appendNumber('6')" class="keypad-button">6</button>
+                        <button type="button" onclick="appendNumber('7')" class="keypad-button">7</button>
+                        <button type="button" onclick="appendNumber('8')" class="keypad-button">8</button>
+                        <button type="button" onclick="appendNumber('9')" class="keypad-button">9</button>
+                        <button type="button" onclick="deleteNumber()" class="keypad-button col-span-1">⌫</button>
+                        <button type="button" onclick="appendNumber('0')" class="keypad-button">0</button>
+                        <button type="button" onclick="clearNumber()" class="keypad-button">C</button>
+                    </div>
+                    <p class="mt-1 text-sm text-gray-500">กรุณากรอกตัวเลข 0-9 ไม่เกิน 20 หลัก</p>
+                </div>
+            </div>
+            <div>
+                <button type="submit"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150 ease-in-out transform hover:scale-[1.02] relative"
+                >
+                    <span class="inline-flex items-center">ลงทะเบียน</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script>
+        /**
+         * Initializes the LIFF application.
+         * Checks if the app is in LINE client and if the user is logged in.
+         */
+        async function initializeLiff() {
+            try {
+                // Initialize LIFF with your LIFF ID.
+                // Replace 'YOUR_LIFF_ID' with your actual LIFF ID.
+                await liff.init({ liffId: '2007060601-PvMk1EVZ' });
+
+                // Check if the app is opened within a LINE client or LINE browser.
+                if (!liff.isInClient() && !liff.isInLINE()) {
+                    // Display a custom message box instead of alert()
+                    showMessageBox('This application is only available in LINE app or LINE browser.', () => {
+                        window.close(); // Close the window after user acknowledges
+                    });
+                    return;
+                }
+
+                // If the user is not logged in, initiate LIFF login.
+                if (!liff.isLoggedIn()) {
+                    liff.login();
+                }
+            } catch (error) {
+                console.error('LIFF Initialization failed', error);
+                // Display error in a message box
+                showMessageBox('LIFF Initialization failed. Please try again later.');
+            }
+        }
+
+        /**
+         * Handles the submission of the LIFF form.
+         * Prevents default form submission and sends a simple registration message via LIFF.
+         */
+        document.getElementById('liffForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevent default form submission
+
+            const submitButton = this.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML; // Store original button text
+
+            // Disable button and show loading spinner
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<span class="inline-flex items-center"><svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>กำลังลงทะเบียน...</span>';
+            
+            // Get the donor number
+            const donorNumber = document.getElementById('donorNumber').value;
+            // Construct the message to send via LIFF
+            const message = `regis|${donorNumber}`;
+        
+            try {
+                // Check if the app is in the LINE client before sending messages
+                if (liff.isInClient()) {
+                    await liff.sendMessages([{
+                        type: 'text',
+                        text: message
+                    }]);
+                    // Show success message and close window after a delay
+                    submitButton.innerHTML = '<span class="inline-flex items-center"><svg class="-ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>ลงทะเบียนสำเร็จ!</span>';
+                    setTimeout(() => {
+                        this.reset(); // Clear form fields
+                        liff.closeWindow(); // Close the LIFF window
+                    }, 1000); // 1-second delay
+                } else {
+                    // If not in LINE client, inform the user
+                    showMessageBox('This feature is only available in LINE app', () => {
+                        submitButton.disabled = false; // Re-enable button
+                        submitButton.innerHTML = originalText; // Restore original button text
+                    });
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                // Display error message
+                showMessageBox('เกิดข้อผิดพลาดในการส่งข้อมูล กรุณาลองใหม่อีกครั้ง');
+                submitButton.disabled = false; // Re-enable button
+                submitButton.innerHTML = originalText; // Restore original button text
+            }
+        });
+
+        /**
+         * Custom message box function to replace alert().
+         * @param {string} message - The message to display.
+         * @param {function} [callback] - Optional callback function to execute when the message box is closed.
+         */
+        function showMessageBox(message, callback) {
+            const messageBox = document.createElement('div');
+            messageBox.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center p-4 z-50';
+            messageBox.innerHTML = `
+                <div class="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full text-center">
+                    <p class="text-lg font-semibold text-gray-800 mb-4">${message}</p>
+                    <button id="messageBoxOk" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-opacity-75">
+                        OK
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(messageBox);
+
+            document.getElementById('messageBoxOk').addEventListener('click', () => {
+                document.body.removeChild(messageBox);
+                if (callback) {
+                    callback();
+                }
+            });
+        }
+    
+        // Initialize LIFF when the script loads
+        initializeLiff();
+
+        /**
+         * Handles input for the donor number field.
+         * Ensures only digits are entered and limits the length to 20.
+         * @param {HTMLInputElement} input - The input element.
+         */
+        function handleNumberInput(input) {
+            // Remove non-numeric characters
+            let value = input.value.replace(/[^0-9]/g, '');
+            // Ensure value does not exceed 20 characters
+            if (value.length > 20) {
+                value = value.slice(0, 20);
+            }
+            input.value = value;
+
+            // The pattern attribute (pattern="[0-9]{1,20}") and built-in HTML5 validation
+            // will handle the valid/invalid state for the peer-valid/peer-invalid classes.
+            input.reportValidity();
+        }
+
+        /**
+         * Appends a number to the donor number input field.
+         * @param {string} num - The number string to append.
+         */
+        function appendNumber(num) {
+            const input = document.getElementById('donorNumber');
+            if (input.value.length < 20) { // Check if current length is less than max (20)
+                input.value += num;
+                handleNumberInput(input); // Re-evaluate and update UI
+            }
+        }
+
+        /**
+         * Deletes the last character from the donor number input field.
+         */
+        function deleteNumber() {
+            const input = document.getElementById('donorNumber');
+            if (input.value.length > 0) {
+                input.value = input.value.slice(0, -1);
+                handleNumberInput(input); // Re-evaluate and update UI
+            }
+        }
+
+        /**
+         * Clears the donor number input field.
+         */
+        function clearNumber() {
+            const input = document.getElementById('donorNumber');
+            input.value = '';
+            handleNumberInput(input); // Re-evaluate and update UI
+        }
+    </script>
+</body>
+</html>
